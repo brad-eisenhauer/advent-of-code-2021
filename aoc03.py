@@ -1,14 +1,16 @@
+"""AoC 2021, Day 03: https://adventofcode.com/2021/day/3"""
+import unittest
 from functools import partial
-from pathlib import Path
+from io import StringIO
 from typing import Callable, Iterable
 
 import pandas as pd
 
-INPUT_FILE = Path(__file__).parent / "resources" / "input03.txt"
+from util import get_input_path
 
 
-def main():
-    with open(INPUT_FILE) as fp:
+def main(input_file):
+    with open(input_file) as fp:
         diagnostic_readings = read_diagnostics(fp)
 
     power_consumption = calc_power_consumption(diagnostic_readings)
@@ -19,6 +21,7 @@ def main():
 
 
 def read_diagnostics(diagnostic_output: Iterable[str]) -> pd.DataFrame:
+    """Transform input to data frame; one column per digit"""
     return pd.DataFrame(list(line.strip()) for line in diagnostic_output)
 
 
@@ -61,25 +64,33 @@ def filter_most_common(
     return diagnostic_readings[~most_common if invert else most_common]
 
 
-TEST_INPUT = [
-    "00100",
-    "11110",
-    "10110",
-    "10111",
-    "10101",
-    "01111",
-    "00111",
-    "11100",
-    "10000",
-    "11001",
-    "00010",
-    "01010",
-]
+TEST_INPUT = """00100
+11110
+10110
+10111
+10101
+01111
+00111
+11100
+10000
+11001
+00010
+01010
+"""
+
+
+class Day03Tests(unittest.TestCase):
+    def setUp(self):
+        self.readings = read_diagnostics(StringIO(TEST_INPUT))
+
+    def test_power_consumption(self):
+        result = calc_power_consumption(self.readings)
+        assert 198 == result
+
+    def test_life_support(self):
+        result = calc_life_support_rating(self.readings)
+        assert 230 == result
 
 
 if __name__ == "__main__":
-    # df = create_diagnostic_df(TEST_INPUT)
-    # print(f"O2 rating: {calc_o2_rating(df)}")
-    # print(f"CO2 rating: {calc_co2_rating(df)}")
-    # print(f"Life support rating: {calc_life_support_rating(df)}")
-    main()
+    main(get_input_path(3))
