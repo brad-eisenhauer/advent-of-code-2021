@@ -1,13 +1,15 @@
 """Advent of Code 2021, Day 05: https://adventofcode.com/2021/day/5"""
+from __future__ import annotations
 
 from collections import Counter
+from dataclasses import dataclass
 from io import StringIO
 from pathlib import Path
 from typing import Iterable, Iterator, Tuple
 
-from util import get_input_path, greatest_common_divisor
+import pytest
 
-Point = Tuple[int, ...]
+from util import get_input_path, greatest_common_divisor
 
 
 def main(input_path: Path):
@@ -17,61 +19,68 @@ def main(input_path: Path):
         print(result)
 
 
-def translate_to_segments(lines: Iterable[str]) -> Iterator[Tuple[Point, Point]]:
+@dataclass(frozen=True)
+class Vector:
+    coords: Tuple[int, ...]
+
+    def __add__(self, other: Vector) -> Vector:
+        return Vector.from_iterable(a + b for a, b in zip(self.coords, other.coords))
+
+    def __mul__(self, other: int) -> Vector:
+        return Vector.from_iterable(x * other for x in self.coords)
+
+    def __floordiv__(self, other: int) -> Vector:
+        return Vector.from_iterable(x // other for x in self.coords)
+
+    def __sub__(self, other: Vector) -> Vector:
+        return Vector.from_iterable(a - b for a, b in zip(self.coords, other.coords))
+
+    @property
+    def is_orthogonal(self) -> bool:
+        return sum(1 for c in self.coords if c != 0) < 2
+
+    @classmethod
+    def from_string(cls, coords: str) -> Vector:
+        return cls.from_iterable(int(x) for x in coords.split(","))
+
+    @classmethod
+    def from_iterable(cls, coords: Iterable[int]) -> Vector:
+        return cls(tuple(coords))
+
+
+def translate_to_segments(lines: Iterable[str]) -> Iterator[Tuple[Vector, Vector]]:
     for line in lines:
         yield make_start_end(line)
 
 
 def count_overlaps(
-    segments: Iterable[Tuple[Point, Point]], orthogonal_only: bool = False
+    segments: Iterable[Tuple[Vector, Vector]], orthogonal_only: bool = False
 ) -> Counter:
     return Counter(
         p
-        for segment in segments
-        for p in generate_overlapping_points(*segment, orthogonal_only)
+        for start, end in segments
+        for p in generate_overlapping_points(start, end, orthogonal_only)
     )
 
 
-def make_start_end(line_segment: str) -> Tuple[Point, Point]:
+def make_start_end(line_segment: str) -> Tuple[Vector, Vector]:
     start, _, end = line_segment.split()
-    return tuple(map(int, start.split(","))), tuple(map(int, end.split(",")))
+    return Vector.from_string(start), Vector.from_string(end)
 
 
 def generate_overlapping_points(
-    start: Point, end: Point, orthogonal_only: bool
-) -> Iterator[Point]:
-    delta = subtract_points(end, start)
-    if orthogonal_only and all(p != 0 for p in delta):
+    start: Vector, end: Vector, orthogonal_only: bool
+) -> Iterator[Vector]:
+    delta = end - start
+    if orthogonal_only and not delta.is_orthogonal:
         return
-    unit_delta = int_divide_point(delta, greatest_common_divisor(*delta))
+    increment = delta // greatest_common_divisor(*delta.coords)
 
     point = start
     yield point
     while point != end:
-        point = add_points(point, unit_delta)
+        point += increment
         yield point
-
-
-# region Point arithmetic
-
-
-def add_points(a: Point, b: Point) -> Point:
-    return tuple(n + m for n, m in zip(a, b))
-
-
-def subtract_points(a: Point, b: Point) -> Point:
-    return tuple(n - m for n, m in zip(a, b))
-
-
-def multiply_point(p: Point, m: int) -> Point:
-    return tuple(n * m for n in p)
-
-
-def int_divide_point(p: Point, d: int) -> Point:
-    return tuple(n // d for n in p)
-
-
-# endregion
 
 
 TEST_INPUT = """0,9 -> 5,9
@@ -87,22 +96,14 @@ TEST_INPUT = """0,9 -> 5,9
 """
 
 
-def test_count_orthogonal_overlaps():
+@pytest.mark.parametrize(("orthogonal_only", "expected"), ((True, 5), (False, 12)))
+def test_count_overlaps(orthogonal_only, expected):
     with StringIO(TEST_INPUT) as fp:
-        counter = count_overlaps(translate_to_segments(fp), orthogonal_only=True)
+        counter = count_overlaps(translate_to_segments(fp), orthogonal_only)
 
     result = sum(1 for p in counter if counter[p] > 1)
 
-    assert 5 == result
-
-
-def test_count_all_overlaps():
-    with StringIO(TEST_INPUT) as fp:
-        counter = count_overlaps(translate_to_segments(fp), orthogonal_only=False)
-
-    result = sum(1 for p in counter if counter[p] > 1)
-
-    assert 12 == result
+    assert expected == result
 
 
 if __name__ == "__main__":
