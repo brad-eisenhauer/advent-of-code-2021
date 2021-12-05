@@ -14,9 +14,12 @@ from util import get_input_path, greatest_common_divisor
 
 def main(input_path: Path):
     with open(input_path) as fp:
-        counter = count_overlaps(translate_to_segments(fp), orthogonal_only=False)
-        result = sum(1 for p in counter if counter[p] > 1)
-        print(result)
+        intersection_counter = count_intersections(
+            translate_to_segments(fp), orthogonal_only=False
+        )
+
+    result = sum(1 for p in intersection_counter if intersection_counter[p] > 1)
+    print(result)
 
 
 @dataclass(frozen=True)
@@ -49,28 +52,27 @@ class Vector:
 
 
 def translate_to_segments(lines: Iterable[str]) -> Iterator[Tuple[Vector, Vector]]:
+    """Map input lines to line segments"""
     for line in lines:
-        yield make_start_end(line)
+        start, _, end = line.split()
+        yield Vector.from_string(start), Vector.from_string(end)
 
 
-def count_overlaps(
+def count_intersections(
     segments: Iterable[Tuple[Vector, Vector]], orthogonal_only: bool = False
-) -> Counter:
+) -> Counter[Vector, int]:
+    """Count the number of line segments intersecting each point"""
     return Counter(
         p
         for start, end in segments
-        for p in generate_overlapping_points(start, end, orthogonal_only)
+        for p in generate_points_on_line_segment(start, end, orthogonal_only)
     )
 
 
-def make_start_end(line_segment: str) -> Tuple[Vector, Vector]:
-    start, _, end = line_segment.split()
-    return Vector.from_string(start), Vector.from_string(end)
-
-
-def generate_overlapping_points(
+def generate_points_on_line_segment(
     start: Vector, end: Vector, orthogonal_only: bool
 ) -> Iterator[Vector]:
+    """Generate all the discreet points through which the given segment passes"""
     delta = end - start
     if orthogonal_only and not delta.is_orthogonal:
         return
@@ -99,7 +101,7 @@ TEST_INPUT = """0,9 -> 5,9
 @pytest.mark.parametrize(("orthogonal_only", "expected"), ((True, 5), (False, 12)))
 def test_count_overlaps(orthogonal_only, expected):
     with StringIO(TEST_INPUT) as fp:
-        counter = count_overlaps(translate_to_segments(fp), orthogonal_only)
+        counter = count_intersections(translate_to_segments(fp), orthogonal_only)
 
     result = sum(1 for p in counter if counter[p] > 1)
 
