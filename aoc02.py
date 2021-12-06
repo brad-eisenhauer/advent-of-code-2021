@@ -6,7 +6,7 @@ from typing import NewType
 
 import numpy as np
 
-from util import get_input_path
+from util import get_input_path, timer
 
 Movement = NewType(
     "Movement", np.ndarray  # Movement vector consists of displacement, ∆ aim
@@ -84,4 +84,5 @@ def test_main():
 
 
 if __name__ == "__main__":
-    main(get_input_path(2))
+    with timer():
+        main(get_input_path(2))

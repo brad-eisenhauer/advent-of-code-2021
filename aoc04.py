@@ -4,7 +4,7 @@ from itertools import islice
 from pathlib import Path
 from typing import Iterable, Optional, Sequence, TextIO, Tuple, Union
 
-from util import get_input_path, partition
+from util import get_input_path, partition, timer
 
 
 def main(input_path: Union[Path, str]):
@@ -133,4 +133,5 @@ def test_game():
 
 
 if __name__ == "__main__":
-    main(get_input_path(4))
+    with timer():
+        main(get_input_path(4))

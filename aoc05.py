@@ -9,7 +9,7 @@ from typing import Iterable, Iterator, Tuple
 
 import pytest
 
-from util import get_input_path, greatest_common_divisor
+from util import get_input_path, greatest_common_divisor, timer
 
 
 def main(input_path: Path):
@@ -109,4 +109,5 @@ def test_count_overlaps(orthogonal_only, expected):
 
 
 if __name__ == "__main__":
-    main(get_input_path(5))
+    with timer():
+        main(get_input_path(5))

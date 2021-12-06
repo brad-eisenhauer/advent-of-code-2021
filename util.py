@@ -1,3 +1,5 @@
+import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Callable, Iterable, Tuple, TypeVar
 
@@ -35,3 +37,11 @@ def greatest_common_divisor(a: int, b: int) -> int:
     if b == 0:
         return abs(a)
     return greatest_common_divisor(b, a % b)
+
+
+@contextmanager
+def timer():
+    start = time.time()
+    yield
+    end = time.time()
+    print(f"Elapsed time: {(end - start) * 1000} ms")

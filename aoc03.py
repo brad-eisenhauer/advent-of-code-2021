@@ -6,7 +6,7 @@ from typing import Callable, Iterable
 
 import pandas as pd
 
-from util import get_input_path
+from util import get_input_path, timer
 
 
 def main(input_file):
@@ -93,4 +93,5 @@ class Day03Tests(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    main(get_input_path(3))
+    with timer():
+        main(get_input_path(3))

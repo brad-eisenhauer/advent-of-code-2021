@@ -5,7 +5,7 @@ from typing import TextIO
 
 import pytest
 
-from util import get_input_path
+from util import get_input_path, timer
 
 
 def main(input_path):
@@ -52,4 +52,5 @@ def test_count_lanternfish(sim_days, expected):
 
 
 if __name__ == "__main__":
-    main(get_input_path(6))
+    with timer():
+        main(get_input_path(6))
