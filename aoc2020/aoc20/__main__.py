@@ -8,9 +8,9 @@ from functools import reduce
 from io import StringIO
 from itertools import chain, product, takewhile
 from math import sqrt
-from typing import Iterable, Iterator, Mapping, Optional, Sequence, TextIO
+from typing import Iterable, Iterator, Optional, Sequence, TextIO
 
-from aoc2020_20 import Edge, Image, Mask, Tile
+from aoc2020.aoc20 import Edge, Image, Mask, Tile
 from util import get_input_path, make_sequence, timer
 
 log = logging.getLogger("2020_20")

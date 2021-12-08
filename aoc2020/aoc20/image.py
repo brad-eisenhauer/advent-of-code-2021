@@ -3,8 +3,8 @@ from __future__ import annotations
 from itertools import product
 from typing import Iterable, Iterator, Mapping, Optional, Tuple
 
-from aoc2020_20 import Edge
-from aoc2020_20.tile import Tile
+from .edge import Edge
+from .tile import Tile
 
 
 class Image:

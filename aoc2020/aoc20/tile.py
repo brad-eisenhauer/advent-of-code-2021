@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import cached_property
 from typing import Iterable, Iterator, Mapping
 
-from aoc2020_20.edge import Edge
+from .edge import Edge
 
 
 class Tile:
