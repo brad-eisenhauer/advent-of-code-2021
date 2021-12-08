@@ -66,7 +66,7 @@ class Image:
     def locations(self) -> Iterator[Tuple[int, int]]:
         return product(range(len(self.tiles)), range(len(self.tiles[0])))
 
-    def calc_edge_requirements(self, row: int, col: int) -> Mapping[Edge, int]:
+    def calc_edge_requirements(self, row: int, col: int) -> Mapping[Edge, str]:
         """Calculate the required hashes for each edge bordering an existing Tile"""
         adjacent_offsets = {
             Edge.TOP: (-1, 0),
@@ -84,5 +84,5 @@ class Image:
                     )
                 )
             ) is not None:
-                edge_requirements[edge] = adj_tile.edge_hashes[edge.opposite]
+                edge_requirements[edge] = adj_tile.edges[edge.opposite]
         return edge_requirements

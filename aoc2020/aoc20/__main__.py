@@ -24,8 +24,10 @@ SEA_MONSTER = """
 
 def main(input_data: TextIO):
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
+
     log.info("Reading input data...")
     tiles = read_tiles(input_data)
+
     log.info("Assembling image...")
     image = assemble_image(tiles)
     corner_product = reduce(
@@ -43,10 +45,6 @@ def main(input_data: TextIO):
     log.info("Water roughness == %d", roughness)
 
     return roughness
-
-
-def print_time():
-    print(f"{time.time()}: ", end="")
 
 
 def read_tiles(fp: TextIO) -> Iterator[Tile]:
@@ -100,7 +98,7 @@ def find_corner_tiles(tiles: Sequence[Tile]) -> Iterator[Tile]:
     for tile in tiles:
         unmatched_edges = []
         for edge in Edge:
-            edge_requirements = {edge.opposite: tile.edge_hashes[edge]}
+            edge_requirements = {edge.opposite: tile.edges[edge]}
             for adj_tile in tiles:
                 if (
                     adj_tile is not tile
