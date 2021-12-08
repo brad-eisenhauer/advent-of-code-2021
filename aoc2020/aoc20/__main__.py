@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 import operator
-import time
 from functools import reduce
 from io import StringIO
 from itertools import chain, product, takewhile
@@ -58,30 +57,43 @@ def read_tiles(fp: TextIO) -> Iterator[Tile]:
         ...
 
 
-def assemble_image(tiles: Iterable[Tile], image: Image = None) -> Optional[Image]:
+def assemble_image(tiles: Iterable[Tile]) -> Optional[Image]:
+    tiles = make_sequence(tiles)
+    if not tiles:
+        return None
+
+    size = int(sqrt(len(tiles)))
+    image = Image.new(size)
+
+    for tile in find_corner_tiles(tiles):
+        result = _assemble_image(
+            (t for t in tiles if t is not tile), image.insert(tile, 0, 0), 0, 1
+        )
+        if result is not None:
+            return result
+
+    return None
+
+
+def _assemble_image(
+    tiles: Iterable[Tile], image: Image, row_idx: int, col_idx: int
+) -> Optional[Image]:
     tiles = make_sequence(tiles)
 
     if not tiles:
-        if image is not None:
-            return image if image.is_complete else None
-        return None
+        return image if image.is_complete else None
 
-    if image is None:
-        size = int(sqrt(len(tiles)))
-        image = Image.new(size)
-
-    # find first unfilled location
-    image_height, image_width = image.dimensions
-    for row_idx, col_idx in product(range(image_height), range(image_width)):
-        if image[row_idx][col_idx] is None:
-            break
+    next_col = (col_idx + 1) % image.dimensions[1]
+    next_row = row_idx + int(next_col < col_idx)
 
     edge_requirements = image.calc_edge_requirements(row_idx, col_idx)
-    for tile in find_corner_tiles(tiles) if (row_idx, col_idx) == (0, 0) else tiles:
+    for tile in tiles:
         for candidate_match in tile.find_matches(edge_requirements):
-            result = assemble_image(
+            result = _assemble_image(
                 (t for t in tiles if t is not tile),
                 image.insert(candidate_match, row_idx, col_idx),
+                next_row,
+                next_col,
             )
             if result is not None:
                 return result
@@ -119,7 +131,8 @@ def get_monster_mask():
     """It was a sea-floor smash."""
     with StringIO(SEA_MONSTER) as sm:
         return Mask(
-            (x, y) for x, line in enumerate(sm)
+            (x, y)
+            for x, line in enumerate(sm)
             for y, char in enumerate(line)
             if char == "#"
         )
