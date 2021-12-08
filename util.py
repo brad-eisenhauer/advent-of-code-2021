@@ -1,13 +1,17 @@
 import time
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable, Iterable, Tuple, TypeVar
+from typing import Callable, Iterable, Optional, Sequence, Tuple, TypeVar
 
 T = TypeVar("T")
 
 
-def get_input_path(day: int) -> Path:
-    return Path(__file__).parent / "resources" / f"input{day:02d}.txt"
+def get_input_path(day: int, year: Optional[int] = None) -> Path:
+    return (
+        Path(__file__).parent
+        / "resources"
+        / f"input{year if year else ''}{day:02d}.txt"
+    )
 
 
 def partition(
@@ -45,3 +49,9 @@ def timer():
     yield
     end = time.time()
     print(f"Elapsed time: {(end - start) * 1000} ms")
+
+
+def make_sequence(items: Iterable[T]) -> Sequence[T]:
+    if isinstance(items, Sequence):
+        return items
+    return tuple(items)
