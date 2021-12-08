@@ -78,7 +78,7 @@ def assemble_image(tiles: Iterable[Tile], image: Image = None) -> Optional[Image
         if image[row_idx][col_idx] is None:
             break
 
-    edge_requirements = get_edge_requirements(image, row_idx, col_idx)
+    edge_requirements = image.calc_edge_requirements(row_idx, col_idx)
     for tile in find_corner_tiles(tiles) if (row_idx, col_idx) == (0, 0) else tiles:
         for candidate_match in tile.find_matches(edge_requirements):
             result = assemble_image(
@@ -89,27 +89,6 @@ def assemble_image(tiles: Iterable[Tile], image: Image = None) -> Optional[Image
                 return result
 
     return None
-
-
-def get_edge_requirements(
-    image: Image, row_idx: int, col_idx: int
-) -> Mapping[Edge, int]:
-    adjacent_offsets = {
-        Edge.TOP: (-1, 0),
-        Edge.BOTTOM: (1, 0),
-        Edge.LEFT: (0, -1),
-        Edge.RIGHT: (0, 1),
-    }
-    edge_requirements = {}
-    idxs = (row_idx, col_idx)
-    for edge in Edge:
-        if (
-            adj_tile := image.get(
-                *(idx + offset for idx, offset in zip(idxs, adjacent_offsets[edge]))
-            )
-        ) is not None:
-            edge_requirements[edge] = adj_tile.edge_hashes[edge.opposite]
-    return edge_requirements
 
 
 def find_corner_tiles(tiles: Sequence[Tile]) -> Iterator[Tile]:
@@ -151,7 +130,7 @@ def get_monster_mask():
 def find_sea_monsters(image: Image, monster_mask: Mask) -> Iterator[Mask]:
     image_data = make_sequence(image.merge())
     image_dims = len(image_data), len(image_data[0])
-    for mask_variation in monster_mask.generate_variations():
+    for mask_variation in monster_mask.generate_transformations():
         mask_dims = mask_variation.dimensions
         x_range = range(image_dims[0] - mask_dims[0] + 1)
         y_range = range(image_dims[1] - mask_dims[1] + 1)

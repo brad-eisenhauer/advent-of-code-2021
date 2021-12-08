@@ -44,7 +44,8 @@ class Mask:
         for x, y in self.points:
             yield y, x
 
-    def generate_variations(self) -> Iterator[Mask]:
+    def generate_transformations(self) -> Iterator[Mask]:
+        """Generate rotations and reflections of the Mask"""
         next_variation = self
         for _ in range(4):
             yield next_variation.normalize()

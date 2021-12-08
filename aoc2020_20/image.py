@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from itertools import product
-from typing import Iterable, Iterator, Optional, Tuple
+from typing import Iterable, Iterator, Mapping, Optional, Tuple
 
+from aoc2020_20 import Edge
 from aoc2020_20.tile import Tile
 
 
@@ -64,3 +65,24 @@ class Image:
 
     def locations(self) -> Iterator[Tuple[int, int]]:
         return product(range(len(self.tiles)), range(len(self.tiles[0])))
+
+    def calc_edge_requirements(self, row: int, col: int) -> Mapping[Edge, int]:
+        """Calculate the required hashes for each edge bordering an existing Tile"""
+        adjacent_offsets = {
+            Edge.TOP: (-1, 0),
+            Edge.BOTTOM: (1, 0),
+            Edge.LEFT: (0, -1),
+            Edge.RIGHT: (0, 1),
+        }
+        edge_requirements = {}
+        for edge in Edge:
+            if (
+                adj_tile := self.get(
+                    *(
+                        idx + offset
+                        for idx, offset in zip((row, col), adjacent_offsets[edge])
+                    )
+                )
+            ) is not None:
+                edge_requirements[edge] = adj_tile.edge_hashes[edge.opposite]
+        return edge_requirements

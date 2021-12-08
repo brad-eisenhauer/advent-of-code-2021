@@ -50,12 +50,14 @@ class Tile:
         return Tile(self.id, new_data)
 
     def find_matches(self, edge_hashes: Mapping[Edge, int]) -> Iterator[Tile]:
-        for tile in self.generate_variations():
+        """Find transformations of the current Tile that satisfy the given edges"""
+        for tile in self.generate_transformations():
             tile_hashes = tile.edge_hashes
             if all(tile_hashes[edge] == h for edge, h in edge_hashes.items()):
                 yield tile
 
-    def generate_variations(self) -> Iterator[Tile]:
+    def generate_transformations(self) -> Iterator[Tile]:
+        """Generate reflections and rotations of the Tile"""
         next_variation = self
         for _ in range(4):
             yield next_variation
