@@ -1,0 +1,33 @@
+""" Advent of Code {{ year }}, Day {{ "%02d"|format(day) }}: https://adventofcode.com/{{ year }}/day/{{ day }} """
+
+from io import StringIO
+from pathlib import Path
+from typing import Iterator, TextIO
+
+import pytest
+
+from util import get_input_path, timer
+
+
+def main(input_path: Path):
+    with open(input_path) as fp:
+        ...
+
+
+SAMPLE_INPUT = """
+"""
+
+
+@pytest.yield_fixture
+def sample_input() -> Iterator[TextIO]:
+    with StringIO(SAMPLE_INPUT) as fp:
+        yield fp
+
+
+def test_something(sample_input):
+    assert True is False
+
+
+if __name__ == "__main__":
+    with timer():
+        main(get_input_path({{ day }}))
