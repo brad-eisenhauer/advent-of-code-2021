@@ -1,17 +1,38 @@
 import time
 from contextlib import contextmanager
+from datetime import date
+from os import getenv
 from pathlib import Path
 from typing import Callable, Iterable, Optional, Sequence, Tuple, TypeVar
 
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 T = TypeVar("T")
 
 
 def get_input_path(day: int, year: Optional[int] = None) -> Path:
-    return (
-        Path(__file__).parent
-        / "resources"
-        / f"input{year if year else ''}{day:02d}.txt"
-    )
+    resources_path = Path(__file__).parent / "resources"
+    if year is not None:
+        resources_path /= str(year)
+    input_path = resources_path / f"input{day:02d}.txt"
+
+    if not input_path.exists():
+        input_path.parent.mkdir(parents=True, exist_ok=True)
+        download_input(input_path, day, year)
+
+    return input_path
+
+
+def download_input(download_path: Path, day: int, year: Optional[int] = None):
+    if year is None:
+        year = date.today().year
+    download_url = f"https://adventofcode.com/{year}/day/{day}/input"
+    with open(download_path, "w") as fp:
+        response = requests.get(download_url, cookies={"session": getenv("session")})
+        response.raise_for_status()
+        fp.write(response.content.decode())
 
 
 def partition(
