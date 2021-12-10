@@ -18,7 +18,7 @@ SAMPLE_INPUT = """
 """
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def sample_input() -> Iterator[TextIO]:
     with StringIO(SAMPLE_INPUT) as fp:
         yield fp
@@ -29,5 +29,6 @@ def test_something(sample_input):
 
 
 if __name__ == "__main__":
+    input_path = get_input_path({{ day }})
     with timer():
-        main(get_input_path({{ day }}))
+        main(input_path)
