@@ -88,9 +88,7 @@ def run_game(boards: Sequence[Board], draws: Iterable[int]) -> Tuple[int, int]:
                 board.score * number for board in winning_boards
             )
         if len(boards) == 0:
-            last_winning_score = min(
-                board.score * number for board in winning_boards
-            )
+            last_winning_score = min(board.score * number for board in winning_boards)
             break
 
     return first_winning_score, last_winning_score
@@ -133,5 +131,6 @@ def test_game():
 
 
 if __name__ == "__main__":
+    input_path = get_input_path(4)
     with timer():
-        main(get_input_path(4))
+        main(input_path)

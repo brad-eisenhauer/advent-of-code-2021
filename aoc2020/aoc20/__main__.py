@@ -283,8 +283,9 @@ def test_main():
 
 
 if __name__ == "__main__":
+    input_path = get_input_path(20, year=2020)
     with timer():
-        with open(get_input_path(20, year=2020)) as fp:
+        with open(input_path) as fp:
             result = main(fp)
 
     print(result)

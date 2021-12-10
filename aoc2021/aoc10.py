@@ -1,9 +1,10 @@
 """ Advent of Code 2021, Day 10: https://adventofcode.com/2021/day/10 """
 from io import StringIO
 from pathlib import Path
-from typing import TextIO
+from typing import TextIO, Iterator
 
 import numpy as np
+import pytest
 
 from util import get_input_path, timer
 
@@ -19,9 +20,7 @@ class IllegalCharError(SyntaxError):
 
 class IncompleteLineError(SyntaxError):
     def __init__(self, stack: list[str]):
-        super().__init__(
-            f"Line incomplete; remaining stack: '{''.join(stack)}'."
-        )
+        super().__init__(f"Line incomplete; remaining stack: '{''.join(stack)}'.")
         self.stack = stack
 
 
@@ -84,6 +83,12 @@ TEST_INPUT = """[({(<(())[]>[[{[]{<()<>>
 """
 
 
+@pytest.fixture
+def sample_input() -> Iterator[TextIO]:
+    with StringIO(TEST_INPUT) as fp:
+        yield fp
+
+
 def test_calc_score():
     with StringIO(TEST_INPUT) as fp:
         score = calc_scores(fp)
@@ -92,5 +97,6 @@ def test_calc_score():
 
 
 if __name__ == "__main__":
+    input_path = get_input_path(10)
     with timer():
-        main(get_input_path(10))
+        main(input_path)

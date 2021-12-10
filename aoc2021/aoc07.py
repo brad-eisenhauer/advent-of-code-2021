@@ -26,11 +26,7 @@ class FuelConsumptionMode(Enum):
         self.optimization_fn = optimization_fn
 
     LINEAR = auto(), lambda d: d, np.median
-    QUADRATIC = (
-        auto(),
-        lambda d: d * (d + 1) // 2,
-        lambda ps: round(np.average(ps)),
-    )
+    QUADRATIC = auto(), lambda d: d * (d + 1) // 2, lambda ps: round(np.average(ps))
 
 
 def main(input_path: Path):
@@ -97,5 +93,6 @@ def test_optimize(fuel_mode, expected):
 
 
 if __name__ == "__main__":
+    input_path = get_input_path(7)
     with timer():
-        main(get_input_path(7))
+        main(input_path)

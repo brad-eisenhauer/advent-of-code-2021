@@ -109,5 +109,6 @@ def test_count_overlaps(orthogonal_only, expected):
 
 
 if __name__ == "__main__":
+    input_path = get_input_path(5)
     with timer():
-        main(get_input_path(5))
+        main(input_path)

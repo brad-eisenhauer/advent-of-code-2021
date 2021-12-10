@@ -135,5 +135,6 @@ def test_calc_population_by_day(sim_days, expected):
 
 
 if __name__ == "__main__":
+    input_path = get_input_path(6)
     with timer():
-        main(get_input_path(6), ComputationMethod.DYNAMIC)
+        main(input_path, ComputationMethod.DYNAMIC)

@@ -69,5 +69,6 @@ def test_day01(window_size, expected):
 
 
 if __name__ == "__main__":
+    input_path = get_input_path(1)
     with timer():
-        main(get_input_path(1), 3)
+        main(input_path, 3)

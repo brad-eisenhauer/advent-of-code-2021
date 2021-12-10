@@ -84,5 +84,6 @@ def test_main():
 
 
 if __name__ == "__main__":
+    input_path = get_input_path(2)
     with timer():
-        main(get_input_path(2))
+        main(input_path)

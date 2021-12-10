@@ -157,5 +157,6 @@ def test_sum_3_largest_basins(height_map):
 
 
 if __name__ == "__main__":
+    input_path = get_input_path(9)
     with timer():
-        main(get_input_path(9))
+        main(input_path)
