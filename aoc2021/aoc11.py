@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from io import StringIO
+from itertools import product
 from pathlib import Path
 from typing import Iterator, TextIO, Iterable, Optional
 
@@ -54,11 +55,13 @@ class OctopusGrid:
 
         # All octopi whose energy is greater than nine flash increasing the energy of
         # adjacent octopi
-        has_flashed, energy_increase = self.calc_flash_energy()
-        self.energy += energy_increase
+        has_flashed = self.calc_flashes()
+        # has_flashed, energy_increase = self.calc_flash_energy()
+        # self.energy += energy_increase
 
         # Reset the energy of all flashed octopi to 0
         self.energy *= ~has_flashed
+        self.energy *= self.increment_matrix  # reset borders to zero
 
         return has_flashed.sum()
 
@@ -98,6 +101,46 @@ class OctopusGrid:
         if (flashes == new_flashes).all():
             return flashes, flash_energy
         return self.calc_flash_energy(new_flashes)
+
+    def calc_flashes(self) -> np.ndarray:
+
+        def generate_neighbors(x, y) -> Iterator[tuple[int, int]]:
+            yield x - 1, y - 1
+            yield x - 1, y
+            yield x - 1, y + 1
+            yield x, y - 1
+            yield x, y + 1
+            yield x + 1, y - 1
+            yield x + 1, y
+            yield x + 1, y + 1
+
+        x_range = range(1, self.energy.shape[0] - 1)
+        y_range = range(1, self.energy.shape[1] - 1)
+
+        queue = []
+        visited = set()
+
+        for x, y in product(x_range, y_range):
+            if self.energy[x, y] > 9:
+                queue.append((x, y))
+
+        flashed = np.zeros_like(self.energy, dtype=bool)
+        while len(queue) > 0:
+            point = queue.pop(0)
+            if point in visited:
+                continue
+            visited.add(point)
+
+            x, y = point
+            flashed[x, y] = True
+            for adj_x, adj_y in generate_neighbors(x, y):
+                self.energy[adj_x, adj_y] += 1
+                # Border octopi cannot reach energy > 3 in a single tick, so we don't
+                # need to check for those.
+                if self.energy[adj_x, adj_y] > 9:
+                    queue.append((adj_x, adj_y))
+
+        return flashed
 
     def simulate(self, ticks: int) -> int:
         return sum(self.tick() for _ in range(ticks))
