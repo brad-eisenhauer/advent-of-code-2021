@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property, reduce
 from io import StringIO
-from itertools import product
+from itertools import product, islice
 from pathlib import Path
 from typing import Iterable, Iterator, Optional, TextIO
 
@@ -15,6 +15,19 @@ import pytest
 from util import get_input_path, timer
 
 Point = tuple[int, int]
+
+
+def main(input_path: Path):
+    with open(input_path) as fp:
+        height_map = HeightMap.read(fp)
+
+    # Part 1 - calc total risk score
+    print(height_map.calc_total_risk_score())
+
+    # Part 2 - product of sizes of 3 largest basins
+    result = reduce(operator.mul, height_map.calc_largest_basin_sizes(3))
+
+    print(result)
 
 
 @dataclass
@@ -97,7 +110,7 @@ class HeightMap:
             return start
 
     def find_basin_points(self, start: Point) -> Iterator[Point]:
-        """ BFS for all points until we hit the wall of 9s """
+        """BFS for all points until we hit the wall of 9s"""
         queue = [start]
         visited = set()
 
@@ -109,22 +122,12 @@ class HeightMap:
                 yield point
                 queue.extend(d.from_point(point) for d in Direction)
 
+    def calc_total_risk_score(self) -> int:
+        return sum(self.get_height(basin.low) + 1 for basin in self.basins)
 
-def main(input_path: Path):
-    with open(input_path) as fp:
-        height_map = HeightMap.read(fp)
-
-    # Part 1 - calc total risk score
-    score = sum(height_map.get_height(basin.low) + 1 for basin in height_map.basins)
-    print(score)
-
-    # Part 2 - product of sizes of 3 largest basins
-    ranked_basin_sizes = sorted(
-        (len(basin.members) for basin in height_map.basins), reverse=True
-    )
-    result = reduce(operator.mul, ranked_basin_sizes[:3])
-
-    print(result)
+    def calc_largest_basin_sizes(self, n: int) -> Iterator[int]:
+        basin_sizes = (len(basin.members) for basin in self.basins)
+        return islice(sorted(basin_sizes, reverse=True), n)
 
 
 TEST_INPUT = """2199943210
@@ -142,17 +145,13 @@ def height_map():
     return height_map
 
 
-def test_calc_sum_of_risks(height_map):
-    result = sum(height_map.get_height(basin.low) + 1 for basin in height_map.basins)
+def test_calc_total_risk_score(height_map):
+    result = height_map.calc_total_risk_score()
     assert result == 15
 
 
 def test_sum_3_largest_basins(height_map):
-    ranked_basin_sizes = sorted(
-        (len(basin.members) for basin in height_map.basins), reverse=True
-    )
-    result = reduce(operator.mul, ranked_basin_sizes[:3])
-
+    result = reduce(operator.mul, height_map.calc_largest_basin_sizes(3))
     assert result == 1134
 
 
