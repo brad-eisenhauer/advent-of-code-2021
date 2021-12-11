@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from datetime import date
 from os import getenv
 from pathlib import Path
-from typing import Callable, Iterable, Optional, Sequence, Tuple, TypeVar
+from typing import Callable, Iterable, Optional, Sequence, TypeVar
 
 import requests
 from dotenv import load_dotenv
@@ -20,24 +20,22 @@ def get_input_path(day: int, year: Optional[int] = None) -> Path:
 
     if not input_path.exists():
         input_path.parent.mkdir(parents=True, exist_ok=True)
-        download_input(input_path, day, year)
+        download_input(input_path, day, year or date.today().year)
 
     return input_path
 
 
-def download_input(download_path: Path, day: int, year: Optional[int] = None):
-    if year is None:
-        year = date.today().year
+def download_input(download_path: Path, day: int, year: int):
     download_url = f"https://adventofcode.com/{year}/day/{day}/input"
+    response = requests.get(download_url, cookies={"session": getenv("AOC_SESSION")})
+    response.raise_for_status()
     with open(download_path, "w") as fp:
-        response = requests.get(download_url, cookies={"session": getenv("session")})
-        response.raise_for_status()
         fp.write(response.content.decode())
 
 
 def partition(
     predicate: Callable[[T], bool], items: Iterable[T]
-) -> Tuple[list[T], list[T]]:
+) -> tuple[Sequence[T], Sequence[T]]:
     """
     Split items into two lists, based on some predicate condition
 
@@ -50,7 +48,7 @@ def partition(
 
     Returns
     -------
-    Lists of failing and passing items, respectively
+    Sequences of failing and passing items, respectively
     """
     result = [], []
     for item in items:
