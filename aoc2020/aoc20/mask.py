@@ -6,7 +6,7 @@ from typing import Iterable, Iterator, Tuple
 
 class Mask:
     def __init__(self, points: Iterable[Tuple[int, int]]):
-        self.points: Tuple[Tuple[int, int]] = tuple(points)
+        self.points: set[Tuple[int, int]] = set(points)
 
     @cached_property
     def bounds(self) -> Tuple[Tuple[int, int], Tuple[int, int]]:
