@@ -97,6 +97,6 @@ def test_calc_score():
 
 
 if __name__ == "__main__":
-    input_path = get_input_path(10)
+    input_path = get_input_path(10, 2021)
     with timer():
         main(input_path)

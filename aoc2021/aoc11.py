@@ -185,6 +185,6 @@ def test_synchronize(sample_input):
 
 
 if __name__ == "__main__":
-    input_path = get_input_path(11)
+    input_path = get_input_path(11, 2021)
     with Timer() as t:
         main(input_path, t)

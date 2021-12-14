@@ -132,6 +132,6 @@ def test_sum_displays():
 
 
 if __name__ == "__main__":
-    input_path = get_input_path(8)
+    input_path = get_input_path(8, 2021)
     with timer():
         main(input_path)

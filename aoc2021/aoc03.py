@@ -93,6 +93,6 @@ class Day03Tests(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    input_path = get_input_path(3)
+    input_path = get_input_path(3, 2021)
     with timer():
         main(input_path)

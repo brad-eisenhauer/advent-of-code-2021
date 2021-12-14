@@ -14,7 +14,8 @@ def main(input_path: Path):
         ...
 
 
-SAMPLE_INPUT = """
+SAMPLE_INPUT = """\
+
 """
 
 
@@ -29,6 +30,6 @@ def test_something(sample_input):
 
 
 if __name__ == "__main__":
-    input_path = get_input_path({{ day }})
+    input_path = get_input_path({{ day }}, year={{ year }})
     with timer():
         main(input_path)
