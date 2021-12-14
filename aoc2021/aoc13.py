@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sys
+from dataclasses import astuple, dataclass
 from enum import Enum
 from io import StringIO
 from itertools import takewhile
@@ -13,12 +14,14 @@ import pytest
 from aoc2020.aoc20 import Mask
 from util import get_input_path, timer, partition
 
+Point = tuple[int, int]
+
 
 def main(input_path: Path):
     with open(input_path) as fp:
         points = read_mask(fp)
         for instruction in read_instructions(fp):
-            points = points.fold_along(*instruction)
+            points = points.fold(instruction)
 
     points.print()
 
@@ -36,6 +39,12 @@ class Axis(Enum):
     Y = "y", 1
 
 
+@dataclass
+class Instruction:
+    axis: Axis
+    value: int
+
+
 class FoldableMask(Mask):
     def partition(
         self, predicate: Callable[[tuple[int, int]], bool]
@@ -43,7 +52,8 @@ class FoldableMask(Mask):
         left, right = partition(predicate, self.points)
         return FoldableMask(left), FoldableMask(right)
 
-    def fold_along(self, axis: Axis, value: int) -> FoldableMask:
+    def fold(self, instruction: Instruction) -> FoldableMask:
+        axis, value = astuple(instruction)
         below, above = self.partition(lambda p: p[axis.axis_index] > value)
         if axis is Axis.X:
             above = above.flip_horizontal().translate(2 * value, 0)
@@ -64,21 +74,21 @@ class FoldableMask(Mask):
 
 def read_mask(fp: TextIO) -> FoldableMask:
     point_lines = takewhile(lambda line: line != "", (line.strip() for line in fp))
-    points: Iterator[tuple[int, int]] = (
-        tuple(map(int, line.split(","))) for line in point_lines
+    points: Iterator[Point] = (
+        (int(x), int(y)) for line in point_lines for x, y in (line.split(","),)
     )
     return FoldableMask(points)
 
 
-def read_next_instruction(fp: TextIO) -> Optional[tuple[Axis, int]]:
+def read_next_instruction(fp: TextIO) -> Optional[Instruction]:
     return next(read_instructions(fp), None)
 
 
-def read_instructions(fp: TextIO) -> Iterator[tuple[Axis, int]]:
+def read_instructions(fp: TextIO) -> Iterator[Instruction]:
     for line in fp:
         fold = line.strip().split()[-1]
         axis, value = fold.split("=")
-        yield Axis(axis), int(value)
+        yield Instruction(Axis(axis), int(value))
 
 
 SAMPLE_INPUT = """6,10
@@ -115,7 +125,7 @@ def test_single_fold(sample_input):
     points = read_mask(sample_input)
     instruction = read_next_instruction(sample_input)
 
-    points = points.fold_along(*instruction)
+    points = points.fold(instruction)
     assert len(points.points) == 17
 
 
@@ -123,7 +133,7 @@ def test_folds(sample_input):
     points = read_mask(sample_input)
 
     for instruction in read_instructions(sample_input):
-        points = points.fold_along(*instruction)
+        points = points.fold(instruction)
 
     output = StringIO()
     points.print(output)
@@ -139,6 +149,6 @@ def test_folds(sample_input):
 
 
 if __name__ == "__main__":
-    input_path = get_input_path(13)
+    input_path = get_input_path(13, 2021)
     with timer():
         main(input_path)
