@@ -1,9 +1,10 @@
 import time
 from contextlib import contextmanager
 from datetime import date
+from itertools import tee, islice
 from os import getenv
 from pathlib import Path
-from typing import Callable, Iterable, Optional, Sequence, TypeVar
+from typing import Callable, Iterable, Optional, Sequence, TypeVar, Iterator
 
 import requests
 from dotenv import load_dotenv
@@ -74,3 +75,11 @@ def make_sequence(items: Iterable[T]) -> Sequence[T]:
     if isinstance(items, Sequence):
         return items
     return tuple(items)
+
+
+def create_windows(items: Iterable[T], n: int) -> Iterator[tuple[T, ...]]:
+    iterators = tee(items, n)
+    offset_iterators = (
+        islice(iterator, offset, None) for offset, iterator in enumerate(iterators)
+    )
+    return zip(*offset_iterators)
