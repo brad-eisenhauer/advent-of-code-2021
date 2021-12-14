@@ -1,7 +1,7 @@
 import time
 from contextlib import contextmanager
 from datetime import date
-from itertools import tee, islice
+from itertools import islice, tee
 from os import getenv
 from pathlib import Path
 from typing import (
@@ -21,10 +21,8 @@ load_dotenv()
 T = TypeVar("T")
 
 
-def get_input_path(day: int, year: Optional[int] = None) -> Path:
-    resources_path = Path(__file__).parent / "resources"
-    if year is not None:
-        resources_path /= str(year)
+def get_input_path(day: int, year: int) -> Path:
+    resources_path = Path(__file__).parent / "resources" / str(year)
     input_path = resources_path / f"input{day:02d}.txt"
 
     if not input_path.exists():

@@ -41,11 +41,17 @@ def count_elements(template: str, formula: Formula, steps: int) -> Counter:
             left = partial_template[:mid_idx + 1]
             right = partial_template[mid_idx:]
             result = count_elements_rec(left, steps) + count_elements_rec(right, steps)
-            result[partial_template[mid_idx]] -= 1  # middle character is included in both counts
+            # middle character is included in both counts
+            result[partial_template[mid_idx]] -= 1
             return result
 
-        new_template = partial_template[0] + formula[partial_template] + partial_template[1]
-        return count_elements_rec(new_template, steps - 1)
+        new_char = formula[partial_template]
+        result = (
+            count_elements_rec(partial_template[0] + new_char, steps - 1)
+            + count_elements_rec(new_char + partial_template[1], steps - 1)
+        )
+        result[new_char] -= 1
+        return result
 
     return count_elements_rec(template, steps)
 
@@ -88,6 +94,6 @@ def test_most_least_common_elements(sample_input, step_count, expected):
 
 
 if __name__ == "__main__":
-    input_path = get_input_path(14)
+    input_path = get_input_path(14, 2021)
     with timer():
         main(input_path)
