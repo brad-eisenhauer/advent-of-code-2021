@@ -7,22 +7,25 @@ from typing import TextIO
 import networkx as nx
 import pytest
 
-from util import get_input_path, timer
+from util import Timer, get_input_path
 
 Cave = str
 
 
-def main(input_path: Path):
+def main(input_path: Path, timer: Timer):
     with open(input_path) as fp:
         graph = read_graph(fp)
+    timer.check("Read input")
 
     # part 1
     result = count_paths_dfs(graph)
     print(result)
+    timer.check("Part 1")
 
     # part 2
     result = count_paths_dfs(graph, True)
     print(result)
+    timer.check("Part 2")
 
 
 def read_graph(fp: TextIO) -> nx.Graph:
@@ -167,5 +170,5 @@ def test_count_paths(sample_index: int, revisit_small_cave, expected, count_path
 
 if __name__ == "__main__":
     input_path = get_input_path(12)
-    with timer():
-        main(input_path)
+    with Timer() as t:
+        main(input_path, t)

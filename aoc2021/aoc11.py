@@ -5,26 +5,29 @@ from __future__ import annotations
 from io import StringIO
 from itertools import product
 from pathlib import Path
-from typing import Iterator, TextIO, Iterable, Optional
+from typing import Iterable, Iterator, Optional, TextIO
 
 import numpy as np
 import pytest
 
-from util import get_input_path, timer
+from util import Timer, get_input_path
 
 
-def main(input_path: Path):
+def main(input_path: Path, timer: Timer):
     with open(input_path) as fp:
         octopi1 = OctopusGrid.read(fp)
-
     octopi2 = octopi1.copy()
+
+    timer.check("Read input")
 
     # Part 1
     result = octopi1.simulate(100)
     print(result)
+    timer.check("Part 1")
 
     # Part 2
     print(octopi2.run_until_synchronized())
+    timer.check("Part 2")
 
 
 class OctopusGrid:
@@ -54,10 +57,8 @@ class OctopusGrid:
         self.energy += self.increment_matrix
 
         # All octopi whose energy is greater than nine flash increasing the energy of
-        # adjacent octopi
+        # adjacent octopi.
         has_flashed = self.calc_flashes()
-        # has_flashed, energy_increase = self.calc_flash_energy()
-        # self.energy += energy_increase
 
         # Reset the energy of all flashed octopi to 0
         self.energy *= ~has_flashed
@@ -185,5 +186,5 @@ def test_synchronize(sample_input):
 
 if __name__ == "__main__":
     input_path = get_input_path(11)
-    with timer():
-        main(input_path)
+    with Timer() as t:
+        main(input_path, t)
