@@ -1,13 +1,16 @@
 """ Advent of Code 2021, Day 16: https://adventofcode.com/2021/day/16 """
 import operator
+from abc import ABC, abstractmethod
 from functools import reduce
 from itertools import islice
 from pathlib import Path
-from typing import Iterable, Iterator, Optional, Sequence
+from typing import Iterator, Sequence
 
 import pytest
 
 from util import Timer, get_input_path
+
+bit = int
 
 
 def main(input_path: Path, timer: Timer):
@@ -26,21 +29,23 @@ def main(input_path: Path, timer: Timer):
     timer.check("Part 2")
 
 
-class Packet:
-    def __init__(self, ptype: int, version: int):
-        self.ptype = ptype
+class Packet(ABC):
+    def __init__(self, packet_type: int, version: int):
+        self.type = packet_type
         self.version = version
 
+    @abstractmethod
     def sum_of_versions(self):
-        return self.version
+        ...
 
+    @abstractmethod
     def evaluate(self) -> int:
         ...
 
 
-class LiteralPacket(Packet):
-    def __init__(self, ptype: int, version: int, value: int):
-        super().__init__(ptype, version)
+class Literal(Packet):
+    def __init__(self, packet_type: int, version: int, value: int):
+        super().__init__(packet_type, version)
         self.value = value
 
     def sum_of_versions(self):
@@ -50,75 +55,85 @@ class LiteralPacket(Packet):
         return self.value
 
 
-class OperatorPacket(Packet):
-    def __init__(self, ptype: int, version: int, sub_packets: Sequence[Packet]):
-        super().__init__(ptype, version)
-        self.sub_packets = sub_packets
+class Operation(Packet):
+    OPERATORS = {
+        0: operator.add,
+        1: operator.mul,
+        2: min,
+        3: max,
+        5: operator.gt,
+        6: operator.lt,
+        7: operator.eq,
+    }
+    BINARY_OPERATIONS = {5, 6, 7}
+
+    def __init__(self, packet_type: int, version: int, operands: Sequence[Packet]):
+        if packet_type in self.BINARY_OPERATIONS and len(operands) != 2:
+            raise ValueError(
+                f"Binary operation ({packet_type}) requires exactly 2 operands; "
+                f"received {len(operands)}."
+            )
+        super().__init__(packet_type, version)
+        self.operands = operands
 
     def sum_of_versions(self):
-        return self.version + sum(p.sum_of_versions() for p in self.sub_packets)
+        return self.version + sum(p.sum_of_versions() for p in self.operands)
 
     def evaluate(self) -> int:
-        if self.ptype == 0:
-            return sum(p.evaluate() for p in self.sub_packets)
-        if self.ptype == 1:
-            return reduce(operator.mul, (p.evaluate() for p in self.sub_packets))
-        if self.ptype == 2:
-            return min(p.evaluate() for p in self.sub_packets)
-        if self.ptype == 3:
-            return max(p.evaluate() for p in self.sub_packets)
-        if self.ptype == 5:
-            left, right = self.sub_packets
-            return int(left.evaluate() > right.evaluate())
-        if self.ptype == 6:
-            left, right = self.sub_packets
-            return int(left.evaluate() < right.evaluate())
-        if self.ptype == 7:
-            left, right = self.sub_packets
-            return int(left.evaluate() == right.evaluate())
-        raise ValueError(f"Unrecognized packet type: {self.ptype}")
+        op = self.OPERATORS[self.type]
+        return int(reduce(op, (p.evaluate() for p in self.operands)))
 
 
-def generate_bits(hex: str) -> Iterator[str]:
+def generate_bits(hex: str) -> Iterator[bit]:
     for c in hex:
-        yield from f"{int(c, 16):04b}"
+        value = int(c, 16)
+        for offset in range(3, -1, -1):
+            yield 1 & (value >> offset)
 
 
-def parse_packet(bits: Iterable[str]) -> Optional[Packet]:
-    try:
-        version = value_of_bits(bits, 3)
-    except ValueError:
-        return None
+def parse_packet(bits: Iterator[bit]) -> Packet:
+    version = value_of_bits(bits, 3)
+    packet_type = value_of_bits(bits, 3)
 
-    ptype = value_of_bits(bits, 3)
-
-    if ptype == 4:
-        value = 0
-        keep_reading = True
-        while keep_reading:
-            keep_reading = value_of_bits(bits, 1)
-            value *= 16
-            value += value_of_bits(bits, 4)
-        return LiteralPacket(ptype, version, value)
+    if packet_type == 4:
+        value = read_literal_value(bits)
+        return Literal(packet_type, version, value)
 
     # Operator packet
-    if value_of_bits(bits, 1) == 0:
+    if value_of_bits(bits, 1):
+        packet_count = value_of_bits(bits, 11)
+        sub_packets = [parse_packet(bits) for _ in range(packet_count)]
+    else:
         sub_packet_length = value_of_bits(bits, 15)
         sub_packet_bits = islice(bits, sub_packet_length)
         sub_packets = list(parse_all_packets(sub_packet_bits))
-    else:
-        packet_count = value_of_bits(bits, 11)
-        sub_packets = [parse_packet(bits) for _ in range(packet_count)]
-    return OperatorPacket(ptype, version, sub_packets)
+    return Operation(packet_type, version, sub_packets)
 
 
-def value_of_bits(bits: Iterable[str], length: int) -> int:
-    return int("".join(islice(bits, length)), 2)
+def value_of_bits(bits: Iterator[bit], length: int) -> int:
+    result = 0
+    for _ in range(length):
+        result <<= 1
+        result += next(bits)
+    return result
 
 
-def parse_all_packets(bits: Iterable[str]) -> Iterator[Packet]:
-    while (packet := parse_packet(bits)) is not None:
-        yield packet
+def read_literal_value(bits: Iterator[bit]) -> int:
+    value = 0
+    keep_reading = True
+    while keep_reading:
+        keep_reading = value_of_bits(bits, 1)
+        value <<= 4
+        value += value_of_bits(bits, 4)
+    return value
+
+
+def parse_all_packets(bits: Iterator[bit]) -> Iterator[Packet]:
+    try:
+        while packet := parse_packet(bits):
+            yield packet
+    except StopIteration:
+        ...
 
 
 @pytest.mark.parametrize(
@@ -133,8 +148,8 @@ def parse_all_packets(bits: Iterable[str]) -> Iterator[Packet]:
 def test_sum_of_versions(hex, expected):
     bits = generate_bits(hex)
     packet = parse_packet(bits)
-    assert all(b == "0" for b in bits)  # Have we consumed all the meaningful bits?
     assert packet.sum_of_versions() == expected
+    assert sum(bits) == 0  # Have we consumed all the meaningful bits?
 
 
 @pytest.mark.parametrize(
@@ -148,13 +163,25 @@ def test_sum_of_versions(hex, expected):
         ("F600BC2D8F", 0),
         ("9C005AC2F8F0", 0),
         ("9C0141080250320F1802104A08", 1),
+        ("D24A", 42),  # literal 42 (multiple quads)
+        ("A600AC3587", 42),  # product 6 * 7
     ),
 )
 def test_evaluate(hex, expected):
     bits = generate_bits(hex)
     packet = parse_packet(bits)
-    assert all(b == "0" for b in bits)  # Have we consumed all the meaningful bits?
     assert packet.evaluate() == expected
+    assert sum(bits) == 0  # Have we consumed all the meaningful bits?
+
+
+def test_generate_bits():
+    assert list(generate_bits("50A")) == [0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0]
+
+
+def test_value_of_bits():
+    bits = iter((1, 0, 1, 0, 0, 1, 0, 0))
+    assert value_of_bits(bits, 6) == 41
+    assert sum(1 for b in bits if b == 0) == 2  # 2 zeros left over
 
 
 if __name__ == "__main__":
