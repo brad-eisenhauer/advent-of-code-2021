@@ -181,79 +181,70 @@ def read_literal_value(bits: Iterator[bit]) -> int:
     return value
 
 
-@pytest.mark.parametrize(
-    ("hex", "expected"),
-    (
-        ("8A004A801A8002F478", 16),
-        ("620080001611562C8802118E34", 12),
-        ("C0015000016115A2E0802F182340", 23),
-        ("A0016C880162017C3686B18A3D4780", 31),
-    ),
-)
-def test_sum_of_versions_ast(hex, expected):
-    bits = generate_bits(hex)
+# region Tests
+
+
+def sum_of_versions_ast(bits: Iterator[bit]) -> int:
     packet = parse_packet(bits)
-    assert packet.sum_of_versions() == expected
-    assert sum(bits) == 0  # Have we consumed all the meaningful bits?
+    return packet.sum_of_versions()
 
 
-@pytest.mark.parametrize(
-    ("hex", "expected"),
-    (
-            ("8A004A801A8002F478", 16),
-            ("620080001611562C8802118E34", 12),
-            ("C0015000016115A2E0802F182340", 23),
-            ("A0016C880162017C3686B18A3D4780", 31),
-    ),
-)
-def test_sum_of_versions_immediate(hex, expected):
-    bits = generate_bits(hex)
+def sum_of_versions_immediate(bits: Iterator[bit]) -> int:
     result, _ = evaluate_packet(bits)
-    assert result == expected
-    assert sum(bits) == 0  # Have we consumed all the meaningful bits?
+    return result
 
 
-@pytest.mark.parametrize(
-    ("hex", "expected"),
-    (
-        ("C200B40A82", 3),
-        ("04005AC33890", 54),
-        ("880086C3E88112", 7),
-        ("CE00C43D881120", 9),
-        ("D8005AC2A8F0", 1),
-        ("F600BC2D8F", 0),
-        ("9C005AC2F8F0", 0),
-        ("9C0141080250320F1802104A08", 1),
-        ("D24A", 42),  # literal 42 (multiple quads)
-        ("A600AC3587", 42),  # product 6 * 7
-    ),
-)
-def test_evaluate_ast(hex, expected):
-    bits = generate_bits(hex)
+def evaluate_ast(bits: Iterator[bit]) -> int:
     packet = parse_packet(bits)
-    assert packet.evaluate() == expected
+    return packet.evaluate()
+
+
+def evaluate_immediate(bits: Iterator[bit]) -> int:
+    _, result = evaluate_packet(bits)
+    return result
+
+
+@pytest.mark.parametrize(
+    ("hex", "expected", "method"),
+    (
+        params
+        for method in (sum_of_versions_ast, sum_of_versions_immediate)
+        for params in (
+            ("8A004A801A8002F478", 16, method),
+            ("620080001611562C8802118E34", 12, method),
+            ("C0015000016115A2E0802F182340", 23, method),
+            ("A0016C880162017C3686B18A3D4780", 31, method),
+        )
+    ),
+)
+def test_sum_of_versions(hex, expected, method):
+    bits = generate_bits(hex)
+    assert method(bits) == expected
     assert sum(bits) == 0  # Have we consumed all the meaningful bits?
 
 
 @pytest.mark.parametrize(
-    ("hex", "expected"),
+    ("hex", "expected", "method"),
     (
-            ("C200B40A82", 3),
-            ("04005AC33890", 54),
-            ("880086C3E88112", 7),
-            ("CE00C43D881120", 9),
-            ("D8005AC2A8F0", 1),
-            ("F600BC2D8F", 0),
-            ("9C005AC2F8F0", 0),
-            ("9C0141080250320F1802104A08", 1),
-            ("D24A", 42),  # literal 42 (multiple quads)
-            ("A600AC3587", 42),  # product 6 * 7
+        params
+        for method in (evaluate_ast, evaluate_immediate)
+        for params in (
+            ("C200B40A82", 3, method),
+            ("04005AC33890", 54, method),
+            ("880086C3E88112", 7, method),
+            ("CE00C43D881120", 9, method),
+            ("D8005AC2A8F0", 1, method),
+            ("F600BC2D8F", 0, method),
+            ("9C005AC2F8F0", 0, method),
+            ("9C0141080250320F1802104A08", 1, method),
+            ("D24A", 42, method),  # literal 42 (multiple quads)
+            ("A600AC3587", 42, method),  # product 6 * 7
+        )
     ),
 )
-def test_evaluate_immediate(hex, expected):
+def test_evaluate(hex, expected, method):
     bits = generate_bits(hex)
-    _, result = evaluate_packet(bits)
-    assert result == expected
+    assert method(bits) == expected
     assert sum(bits) == 0  # Have we consumed all the meaningful bits?
 
 
@@ -265,6 +256,9 @@ def test_value_of_bits():
     bits = iter((1, 0, 1, 0, 0, 1, 0, 0))
     assert value_of_bits(bits, 6) == 41
     assert sum(1 for b in bits if b == 0) == 2  # 2 zeros left over
+
+
+# endregion
 
 
 if __name__ == "__main__":
