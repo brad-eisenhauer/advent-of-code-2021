@@ -11,6 +11,15 @@ import pytest
 from util import Timer, get_input_path
 
 bit = int
+OPERATORS = {
+    0: operator.add,
+    1: operator.mul,
+    2: min,
+    3: max,
+    5: operator.gt,
+    6: operator.lt,
+    7: operator.eq,
+}
 
 
 def main(input_path: Path, timer: Timer):
@@ -20,13 +29,22 @@ def main(input_path: Path, timer: Timer):
 
     bits = generate_bits(hex)
     packet = parse_packet(bits)
-    timer.check("Parse packets")
+    timer.check("AST parse packets")
 
     print(packet.sum_of_versions())
-    timer.check("Part 1")
+    timer.check("AST part 1")
 
     print(packet.evaluate())
-    timer.check("Part 2")
+    timer.check("AST part 2")
+
+    bits = generate_bits(hex)
+    p1_result, p2_result = evaluate_packet(bits)
+    print(p1_result)
+    print(p2_result)
+    timer.check("Immediate evaluation")
+
+
+# region AST solution
 
 
 class Packet(ABC):
@@ -56,15 +74,6 @@ class Literal(Packet):
 
 
 class Operation(Packet):
-    OPERATORS = {
-        0: operator.add,
-        1: operator.mul,
-        2: min,
-        3: max,
-        5: operator.gt,
-        6: operator.lt,
-        7: operator.eq,
-    }
     BINARY_OPERATIONS = {5, 6, 7}
 
     def __init__(self, packet_type: int, version: int, operands: Sequence[Packet]):
@@ -80,15 +89,8 @@ class Operation(Packet):
         return self.version + sum(p.sum_of_versions() for p in self.operands)
 
     def evaluate(self) -> int:
-        op = self.OPERATORS[self.type]
+        op = OPERATORS[self.type]
         return int(reduce(op, (p.evaluate() for p in self.operands)))
-
-
-def generate_bits(hex: str) -> Iterator[bit]:
-    for c in hex:
-        value = int(c, 16)
-        for offset in range(3, -1, -1):
-            yield 1 & (value >> offset)
 
 
 def parse_packet(bits: Iterator[bit]) -> Packet:
@@ -110,6 +112,57 @@ def parse_packet(bits: Iterator[bit]) -> Packet:
     return Operation(packet_type, version, sub_packets)
 
 
+def parse_all_packets(bits: Iterator[bit]) -> Iterator[Packet]:
+    try:
+        while packet := parse_packet(bits):
+            yield packet
+    except StopIteration:
+        ...
+
+
+# endregion
+
+
+# region Immediate evaluation
+
+
+def evaluate_packet(bits: Iterator[bit]) -> tuple[int, int]:
+    version = value_of_bits(bits, 3)
+    packet_type = value_of_bits(bits, 3)
+
+    if packet_type == 4:
+        return version, read_literal_value(bits)
+
+    # Operator packets
+    if value_of_bits(bits, 1):
+        packet_count = value_of_bits(bits, 11)
+        sub_packet_values = (evaluate_packet(bits) for _ in range(packet_count))
+    else:
+        sub_packet_length = value_of_bits(bits, 15)
+        sub_packet_bits = islice(bits, sub_packet_length)
+        sub_packet_values = evaluate_all_packets(sub_packet_bits)
+    versions, values = zip(*sub_packet_values)
+    return sum(versions) + version, reduce(OPERATORS[packet_type], values)
+
+
+def evaluate_all_packets(bits: Iterator[bit]) -> Iterator[int]:
+    try:
+        while True:
+            yield evaluate_packet(bits)
+    except StopIteration:
+        ...
+
+
+# endregion
+
+
+def generate_bits(hex: str) -> Iterator[bit]:
+    for c in hex:
+        value = int(c, 16)
+        for offset in range(3, -1, -1):
+            yield 1 & (value >> offset)
+
+
 def value_of_bits(bits: Iterator[bit], length: int) -> int:
     result = 0
     for _ in range(length):
@@ -128,14 +181,6 @@ def read_literal_value(bits: Iterator[bit]) -> int:
     return value
 
 
-def parse_all_packets(bits: Iterator[bit]) -> Iterator[Packet]:
-    try:
-        while packet := parse_packet(bits):
-            yield packet
-    except StopIteration:
-        ...
-
-
 @pytest.mark.parametrize(
     ("hex", "expected"),
     (
@@ -145,10 +190,26 @@ def parse_all_packets(bits: Iterator[bit]) -> Iterator[Packet]:
         ("A0016C880162017C3686B18A3D4780", 31),
     ),
 )
-def test_sum_of_versions(hex, expected):
+def test_sum_of_versions_ast(hex, expected):
     bits = generate_bits(hex)
     packet = parse_packet(bits)
     assert packet.sum_of_versions() == expected
+    assert sum(bits) == 0  # Have we consumed all the meaningful bits?
+
+
+@pytest.mark.parametrize(
+    ("hex", "expected"),
+    (
+            ("8A004A801A8002F478", 16),
+            ("620080001611562C8802118E34", 12),
+            ("C0015000016115A2E0802F182340", 23),
+            ("A0016C880162017C3686B18A3D4780", 31),
+    ),
+)
+def test_sum_of_versions_immediate(hex, expected):
+    bits = generate_bits(hex)
+    result, _ = evaluate_packet(bits)
+    assert result == expected
     assert sum(bits) == 0  # Have we consumed all the meaningful bits?
 
 
@@ -167,10 +228,32 @@ def test_sum_of_versions(hex, expected):
         ("A600AC3587", 42),  # product 6 * 7
     ),
 )
-def test_evaluate(hex, expected):
+def test_evaluate_ast(hex, expected):
     bits = generate_bits(hex)
     packet = parse_packet(bits)
     assert packet.evaluate() == expected
+    assert sum(bits) == 0  # Have we consumed all the meaningful bits?
+
+
+@pytest.mark.parametrize(
+    ("hex", "expected"),
+    (
+            ("C200B40A82", 3),
+            ("04005AC33890", 54),
+            ("880086C3E88112", 7),
+            ("CE00C43D881120", 9),
+            ("D8005AC2A8F0", 1),
+            ("F600BC2D8F", 0),
+            ("9C005AC2F8F0", 0),
+            ("9C0141080250320F1802104A08", 1),
+            ("D24A", 42),  # literal 42 (multiple quads)
+            ("A600AC3587", 42),  # product 6 * 7
+    ),
+)
+def test_evaluate_immediate(hex, expected):
+    bits = generate_bits(hex)
+    _, result = evaluate_packet(bits)
+    assert result == expected
     assert sum(bits) == 0  # Have we consumed all the meaningful bits?
 
 
