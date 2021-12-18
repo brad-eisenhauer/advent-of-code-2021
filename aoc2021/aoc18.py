@@ -1,10 +1,11 @@
 """ Advent of Code 2021, Day 18: https://adventofcode.com/2021/day/18 """
 from __future__ import annotations
 
+import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from io import StringIO
-from itertools import product
+from itertools import permutations
 from pathlib import Path
 from typing import Iterable, Iterator, Optional, Sequence, TextIO, Union
 
@@ -175,14 +176,14 @@ class Node(Tree):
 
 def parse_input(fp: TextIO) -> Iterator[Tree]:
     for line in fp:
-        sf_num = eval(line.strip())
+        sf_num = json.loads(line.strip())
         yield Tree.from_iterable(sf_num)
 
 
 def find_largest_sum(sf_numbers: Sequence[Tree]) -> int:
     return max(
         (left + right).magnitude
-        for left, right in product(sf_numbers, sf_numbers)
+        for left, right in permutations(sf_numbers, 2)
         if left is not right
     )
 
