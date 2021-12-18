@@ -13,6 +13,9 @@ import pytest
 
 from util import Timer, get_input_path
 
+MAX_ALLOWABLE_DEPTH = 4
+MAX_ALLOWABLE_LEAF = 9
+
 
 def main(input_path: Path, timer: Timer):
     with open(input_path) as fp:
@@ -34,9 +37,9 @@ def main(input_path: Path, timer: Timer):
 
 @dataclass
 class ExplodeResult:
-    left: Optional[int]
+    left_remainder: Optional[int]
     result: Tree
-    right: Optional[int]
+    right_remainder: Optional[int]
 
 
 class Tree(ABC):
@@ -64,15 +67,18 @@ class Tree(ABC):
             explode_result = result.explode()
             if explode_result.result is not result:
                 result = explode_result.result
-                continue
+            # .explode() performs all explosions, so we can immediately start searching
+            # for splits.
+
             split_result = result.split()
             if split_result is not result:
                 result = split_result
-                continue
+                continue  # If a split occurs, we need to go back a look for explosions.
+
             return result
 
     @abstractmethod
-    def explode(self, depth: int = 0) -> ExplodeResult:
+    def explode(self, depth: int = 1) -> ExplodeResult:
         ...
 
     @abstractmethod
@@ -99,11 +105,11 @@ class Leaf(Tree):
     def magnitude(self) -> int:
         return self.value
 
-    def explode(self, depth: int = 0) -> ExplodeResult:
+    def explode(self, depth: int = 1) -> ExplodeResult:
         return ExplodeResult(None, self, None)
 
     def split(self) -> Tree:
-        if self.value > 9:
+        if self.value > MAX_ALLOWABLE_LEAF:
             return Node(Leaf(self.value // 2), Leaf((self.value + 1) // 2))
         return self
 
@@ -130,24 +136,31 @@ class Node(Tree):
     def magnitude(self) -> int:
         return 3 * self.left.magnitude + 2 * self.right.magnitude
 
-    def explode(self, depth: int = 0) -> ExplodeResult:
-        if depth > 3:
+    def explode(self, depth: int = 1) -> ExplodeResult:
+        """Perform all explosions, from left to right"""
+        if depth > MAX_ALLOWABLE_DEPTH:
             return ExplodeResult(self.left.magnitude, Leaf(0), self.right.magnitude)
 
-        explode_result = self.left.explode(depth + 1)
-        if explode_result.result is not self.left:
-            return ExplodeResult(
-                explode_result.left,
-                Node(explode_result.result, self.right.add_left(explode_result.right)),
-                None,
-            )
+        left_result = self.left
+        right_result = self.right
+        left_remainder: Optional[int] = None
+        right_remainder: Optional[int] = None
 
-        explode_result = self.right.explode(depth + 1)
-        if explode_result.result is not self.right:
+        explode_result = left_result.explode(depth + 1)
+        if explode_result.result is not left_result:
+            left_result = explode_result.result
+            left_remainder = explode_result.left_remainder
+            right_result = right_result.add_left(explode_result.right_remainder)
+
+        explode_result = right_result.explode(depth + 1)
+        if explode_result.result is not right_result:
+            right_result = explode_result.result
+            right_remainder = explode_result.right_remainder
+            left_result = left_result.add_right(explode_result.left_remainder)
+
+        if left_result is not self.left or right_result is not self.right:
             return ExplodeResult(
-                None,
-                Node(self.left.add_right(explode_result.left), explode_result.result),
-                explode_result.right,
+                left_remainder, Node(left_result, right_result), right_remainder
             )
 
         return ExplodeResult(None, self, None)
@@ -241,7 +254,7 @@ def test_magnitude(sf_num, expected):
         ([[6, [5, [4, [3, 2]]]], 1], [[6, [5, [7, 0]]], 3]),
         (
             [[3, [2, [1, [7, 3]]]], [6, [5, [4, [3, 2]]]]],
-            [[3, [2, [8, 0]]], [9, [5, [4, [3, 2]]]]],
+            [[3, [2, [8, 0]]], [9, [5, [7, 0]]]],
         ),
         (
             [[3, [2, [8, 0]]], [9, [5, [4, [3, 2]]]]],
