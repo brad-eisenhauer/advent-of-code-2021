@@ -11,7 +11,7 @@ from util import Timer, get_input_path
 
 Algorithm = tuple[int, ...]
 
-ACCUMULATION_MASK = np.array((
+ACCUMULATION_MATRIX = np.array((
     (1, 2, 4),
     (8, 16, 32),
     (64, 128, 256),
@@ -27,7 +27,9 @@ def main(input_path: Path, timer: Timer):
     print(processed_image.sum())
     timer.check("Part 1")
 
-    print_image(processed_image)
+    processed_image = apply_algorithm(processed_image, algo, 48)
+    print(processed_image.sum())
+    timer.check("Part 2")
 
 
 def parse_input(fp: TextIO) -> tuple[Algorithm, np.ndarray]:
@@ -66,7 +68,7 @@ def calc_algo_indexes(padded_image: np.ndarray) -> np.ndarray:
     algo_indexes = np.zeros((x_dim + 2, y_dim + 2), dtype=int)
     for x in range(padded_image.shape[0]):
         for y in range(padded_image.shape[1]):
-            algo_indexes[x:x + 3, y:y + 3] += ACCUMULATION_MASK * padded_image[x, y]
+            algo_indexes[x:x + 3, y:y + 3] += ACCUMULATION_MATRIX * padded_image[x, y]
     return pad_image(algo_indexes, -2)
 
 
@@ -195,6 +197,12 @@ def test_apply_algo_2(sample_input):
 
     assert result.sum() == 35
     assert (result == expected).all()
+
+
+def test_apply_algo_50(sample_input):
+    algo, img = parse_input(sample_input)
+    result = apply_algorithm(img, algo, 50)
+    assert result.sum() == 3351
 
 
 if __name__ == "__main__":
