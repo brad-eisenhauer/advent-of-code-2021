@@ -6,10 +6,10 @@ from typing import Iterator, TextIO
 
 import pytest
 
-from util import get_input_path, timer
+from util import Timer, get_input_path
 
 
-def main(input_path: Path):
+def main(input_path: Path, timer: Timer):
     with open(input_path) as fp:
         ...
 
@@ -31,5 +31,5 @@ def test_something(sample_input):
 
 if __name__ == "__main__":
     input_path = get_input_path({{ day }}, year={{ year }})
-    with timer():
-        main(input_path)
+    with Timer() as timer:
+        main(input_path, timer)
