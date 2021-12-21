@@ -5,9 +5,10 @@ from functools import cache
 from io import StringIO
 from itertools import product
 from pathlib import Path
-from typing import Iterator, TextIO
+from typing import Iterator, TextIO, Iterable, Sequence
 
 import numpy as np
+import pylab as p
 import pytest
 
 from util import Timer, get_input_path
@@ -89,10 +90,18 @@ def main(input_path: Path, timer: Timer):
 
     roll_count, losing_score = calc_rolls_and_losing_score(starting_pos)
     print(losing_score * roll_count)
-    timer.check("Part 1")
+    timer.check("Part 1, take 1")
 
-    initial_state = GameState(
-        next_player_pos=starting_pos[0], other_player_pos=starting_pos[1]
+    game = initialize_game(starting_pos)
+    run_game(game)
+    roll_count = game.die.roll_count
+    losing_score = min(p.score for p in game.players)
+    print(losing_score * roll_count)
+    timer.check("Part 1, take 2")
+
+    initial_state = GameState2(
+        current_player=Player2(position=starting_pos[0]),
+        next_player=Player2(position=starting_pos[1]),
     )
     outcomes = count_outcomes(initial_state)
     print(max(outcomes))
@@ -166,37 +175,93 @@ def count_rolls(turn_count: int, losing_player: int) -> int:
 # endregion
 
 
+# region Part 1, take 2
+# This approach just simulates the game, brute-force-style. Slower, but easier to verify.
+
+
+@dataclass
+class Player1:
+    position: int
+    score: int = 0
+
+
+@dataclass
+class DeterministicDie:
+    next_roll: int = 1
+    roll_count: int = 0
+
+    def get_sum_of_rolls(self, n: int) -> int:
+        result = 0
+        for _ in range(n):
+            result += self.next_roll
+            self.roll_count += 1
+            self.next_roll = self.next_roll % 100 + 1
+        return result
+
+
+@dataclass
+class GameState1:
+    players: Sequence[Player1]
+    die: DeterministicDie
+    next_player: int = 0
+
+
+def initialize_game(player_positions: Iterable[int]) -> GameState1:
+    players = tuple(Player1(position=pos) for pos in player_positions)
+    die = DeterministicDie()
+    return GameState1(players, die)
+
+
+def run_game(game: GameState1):
+    while max(p.score for p in game.players) < 1000:
+        execute_next_turn(game.players[game.next_player], game.die)
+        game.next_player = int(not game.next_player)
+
+
+def execute_next_turn(player: Player1, die: DeterministicDie):
+    player.position = (player.position + die.get_sum_of_rolls(3) - 1) % 10 + 1
+    player.score += player.position
+
+
+# endregion
+
+
 # region Part 2
 
 
 @dataclass(frozen=True)
-class GameState:
-    next_player_pos: int
-    other_player_pos: int
-    next_player_score: int = 0
-    other_player_score: int = 0
+class Player2:
+    position: int
+    # Score counts down to zero as this is more compatible with calculating games of
+    # different lengths; the result isn't dependent on the target score for the game,
+    # just the remaining points required.
+    remaining_score_needed: int = 21
+
+
+@dataclass(frozen=True)
+class GameState2:
+    current_player: Player2
+    next_player: Player2
 
 
 TURN_OUTCOMES = Counter(sum(rolls) for rolls in product(*([[1, 2, 3]] * 3)))
 
 
 @cache
-def count_outcomes(state: GameState) -> tuple[int, int]:
+def count_outcomes(state: GameState2) -> tuple[int, int]:
     """returns wins/losses for next_player"""
     result = [0, 0]
     for move, count in TURN_OUTCOMES.items():
-        new_pos = (state.next_player_pos + move - 1) % 10 + 1
-        new_score = state.next_player_score + new_pos
-        if new_score >= 21:
+        new_pos = (state.current_player.position + move - 1) % 10 + 1
+        new_score = state.current_player.remaining_score_needed - new_pos
+        if new_score <= 0:
             result[0] += count
         else:
-            new_state = GameState(
-                next_player_pos=state.other_player_pos,
-                next_player_score=state.other_player_score,
-                other_player_pos=new_pos,
-                other_player_score=new_score,
+            new_state = GameState2(
+                current_player=state.next_player,
+                next_player=Player2(position=new_pos, remaining_score_needed=new_score),
             )
-            # reverse subsequent results, since we've flipped "next" and "other' players
+            # reverse subsequent results, since we've flipped "current" and "next" players
             other_results = reversed(count_outcomes(new_state))
             result = list(
                 current + count * subsequent
@@ -253,7 +318,7 @@ def test_calc_rolls_and_losing_score(sample_input):
 
 def test_count_outcomes(sample_input):
     p1_start, p2_start = parse_input(sample_input)
-    initial_state = GameState(next_player_pos=p1_start, other_player_pos=p2_start)
+    initial_state = GameState2(Player2(position=p1_start), Player2(position=p2_start))
     result = count_outcomes(initial_state)
     assert result == (444356092776315, 341960390180808)
 
