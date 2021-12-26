@@ -1,11 +1,10 @@
 """ Advent of Code 2021, Day 24: https://adventofcode.com/2021/day/24 """
-import heapq
 import operator
 from enum import Enum
 from io import StringIO
 from itertools import islice
 from pathlib import Path
-from typing import Iterable, Iterator, Sequence, TextIO, Optional, Callable
+from typing import Iterable, Sequence, Optional, Callable
 
 import pytest
 
