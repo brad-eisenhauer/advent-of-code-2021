@@ -2,22 +2,26 @@
 from io import StringIO
 from itertools import islice, tee
 from pathlib import Path
-from typing import Iterable, Iterator, TextIO, Tuple, TypeVar
+from typing import Iterable, Iterator, TextIO, TypeVar
 
 import pytest
 
-from util import get_input_path, timer
+from util import get_input_path, Timer
 
 T = TypeVar("T")
 
 
-def main(input_path: Path, window_size: int):
+def main(input_path: Path, timer: Timer):
     with open(input_path) as fp:
-        measurements = read_measurements(fp)
-        window_sums = calc_window_sums(measurements, window_size)
-        result = count_increases(window_sums)
+        measurements = list(read_measurements(fp))
+    timer.check("Read input")
 
-    print(result)
+    print(count_increases(measurements))
+    timer.check("Part 1")
+
+    window_sums = calc_window_sums(measurements, 3)
+    print(count_increases(window_sums))
+    timer.check("Part 2")
 
 
 def read_measurements(fp: TextIO) -> Iterator[int]:
@@ -29,7 +33,7 @@ def calc_window_sums(measurements: Iterable[int], window_size: int) -> Iterator[
     return (sum(window) for window in windows)
 
 
-def create_windows(items: Iterable[T], n: int) -> Iterator[Tuple[T, ...]]:
+def create_windows(items: Iterable[T], n: int) -> Iterator[tuple[T, ...]]:
     iterators = tee(items, n)
     offset_iterators = (
         islice(iterator, offset, None) for offset, iterator in enumerate(iterators)
@@ -45,7 +49,8 @@ def count_increases(measurements: Iterable[int]) -> int:
     )
 
 
-TEST_INPUT = """199
+TEST_INPUT = """\
+199
 200
 208
 210
@@ -59,7 +64,7 @@ TEST_INPUT = """199
 
 
 @pytest.mark.parametrize(("window_size", "expected"), ((1, 7), (3, 5)))
-def test_day01(window_size, expected):
+def test_count_increases(window_size, expected):
     with StringIO(TEST_INPUT) as fp:
         measurements = read_measurements(fp)
         window_sums = calc_window_sums(measurements, window_size)
@@ -70,5 +75,5 @@ def test_day01(window_size, expected):
 
 if __name__ == "__main__":
     input_path = get_input_path(1, 2021)
-    with timer():
-        main(input_path, 3)
+    with Timer() as timer:
+        main(input_path, timer)
