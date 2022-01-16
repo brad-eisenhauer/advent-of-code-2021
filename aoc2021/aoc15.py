@@ -16,13 +16,13 @@ def main(input_path: Path, timer: Timer):
         costs = read_costs(fp)
     timer.check("Read input")
 
-    for expanded in (False, True):
+    for i, expanded in enumerate((False, True)):
         if expanded:
             costs = expand_costs(costs)
         start = (0, 0)
         result = calc_minimum_cost_to_exit(costs, start)
         print(result)
-        timer.check(f"Calc path - expanded={expanded}")
+        timer.check(f"Part {i + 1}")
 
 
 EXPANSION_MULTIPLIER = 5

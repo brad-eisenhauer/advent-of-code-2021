@@ -8,15 +8,23 @@ from io import StringIO
 from pathlib import Path
 from typing import Iterable, TextIO
 
-from util import get_input_path, timer
+import pytest
+
+from util import get_input_path, timer, Timer
 
 
-def main(input_path: Path):
+def main(input_path: Path, timer: Timer):
     with open(input_path) as fp:
         template, formula = read_input(fp)
+    timer.check("Read input")
+
+    result = formula.calc_element_count_range(template, 10)
+    print(result)
+    timer.check("Part 1")
 
     result = formula.calc_element_count_range(template, 40)
     print(result)
+    timer.check("Part 2")
 
 
 def read_input(fp: TextIO) -> tuple[str, Formula]:
@@ -87,26 +95,15 @@ CN -> C
 """
 
 
-class ElementCountTests(unittest.TestCase):
-    def test_calc_element_count_range(self):
-        for source, steps, expected in (
-            (SAMPLE_INPUT, 10, 1588),
-            (SAMPLE_INPUT, 40, 2188189693529),
-            (None, 10, 3906),
-            (None, 40, 4441317262452),
-        ):
-            with self.subTest(source=source, steps=steps, expected=expected):
-                with (
-                    StringIO(source)
-                    if source is not None
-                    else open(get_input_path(14, 2021))
-                ) as fp:
-                    template, formula = read_input(fp)
-                result = formula.calc_element_count_range(template, steps)
-                self.assertEqual(expected, result)
+@pytest.mark.parametrize(("steps", "expected"), ((10, 1588), (40, 2188189693529)))
+def test_calc_element_count_range(steps, expected):
+    with StringIO(SAMPLE_INPUT) as fp:
+        template, formula = read_input(fp)
+        result = formula.calc_element_count_range(template, steps)
+        assert result == expected
 
 
 if __name__ == "__main__":
     input_path = get_input_path(14, 2021)
-    with timer():
-        main(input_path)
+    with Timer() as timer:
+        main(input_path, timer)

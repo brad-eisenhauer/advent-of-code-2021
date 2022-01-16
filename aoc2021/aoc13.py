@@ -12,18 +12,26 @@ from typing import Iterator, TextIO, Callable, Optional
 import pytest
 
 from aoc2020.aoc20 import Mask
-from util import get_input_path, timer, partition
+from util import get_input_path, timer, partition, Timer
 
 Point = tuple[int, int]
 
 
-def main(input_path: Path):
+def main(input_path: Path, timer: Timer):
     with open(input_path) as fp:
         points = read_mask(fp)
-        for instruction in read_instructions(fp):
+        instructions = read_instructions(fp)
+        timer.check("Read input")
+
+        points = points.fold(next(instructions))
+        print(len(points.points))
+        timer.check("Part 1")
+
+        for instruction in instructions:
             points = points.fold(instruction)
 
     points.print()
+    timer.check("Part 2")
 
 
 class Axis(Enum):
@@ -67,7 +75,7 @@ class FoldableMask(Mask):
         width, height = printable.dimensions
         for y in range(height):
             s = "".join(
-                ("#" if (x, y) in printable.points else " ") for x in range(width)
+                ("█" if (x, y) in printable.points else " ") for x in range(width)
             )
             out.write(s + "\n")
 
@@ -116,33 +124,33 @@ fold along x=5
 
 
 @pytest.fixture
-def sample_input() -> Iterator[TextIO]:
+def sample_program() -> Iterator[TextIO]:
     with StringIO(SAMPLE_INPUT) as fp:
         yield fp
 
 
-def test_single_fold(sample_input):
-    points = read_mask(sample_input)
-    instruction = read_next_instruction(sample_input)
+def test_single_fold(sample_program):
+    points = read_mask(sample_program)
+    instruction = read_next_instruction(sample_program)
 
     points = points.fold(instruction)
     assert len(points.points) == 17
 
 
-def test_folds(sample_input):
-    points = read_mask(sample_input)
+def test_folds(sample_program):
+    points = read_mask(sample_program)
 
-    for instruction in read_instructions(sample_input):
+    for instruction in read_instructions(sample_program):
         points = points.fold(instruction)
 
     output = StringIO()
     points.print(output)
 
-    expected = """#####
-#   #
-#   #
-#   #
-#####
+    expected = """█████
+█   █
+█   █
+█   █
+█████
 """
     output.seek(0)
     assert output.read() == expected
@@ -150,5 +158,5 @@ def test_folds(sample_input):
 
 if __name__ == "__main__":
     input_path = get_input_path(13, 2021)
-    with timer():
-        main(input_path)
+    with Timer() as timer:
+        main(input_path, timer)
