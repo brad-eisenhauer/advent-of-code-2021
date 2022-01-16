@@ -125,11 +125,10 @@ def read_state(fp: TextIO) -> BoardState:
     _ = fp.readline()  # discard first line
     for y, line in enumerate(fp):
         for x, c in enumerate(line[1:]):
-            match c:
-                case "A" | "B" | "C" | "D":
-                    amphipods.append(
-                        AmphipodState(type=AmphipodType(c), position=Position(x, y))
-                    )
+            if c in ("A", "B", "C", "D"):
+                amphipods.append(
+                    AmphipodState(type=AmphipodType(c), position=Position(x, y))
+                )
 
     return BoardState(amphipods=frozenset(amphipods))
 
